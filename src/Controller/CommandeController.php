@@ -20,48 +20,66 @@ use Symfony\Component\Validator\Constraints\Date;
  * @Route("/commande")
  */
 class CommandeController extends AbstractController
+
 {
+    /**
+     * @Route("/alljson", name="commandeAöö")
+     */
+    public function alljson(CommandeRepository $commandeRepository, NormalizerInterface $Normalizer): Response
+    {
+        /* $commandes=$commandeRepository->findAll(); */
+        $commandes = $commandeRepository->findAll() ;
+
+
+        $jsonContent = $Normalizer->normalize($commandes, 'json', ['groups' => 'cmd']);
+
+
+        /* return $this->render('commande/index.html.twig', [
+            'commandes' => $commandeRepository->findAll(),
+        ]); */
+        return new Response(json_encode($jsonContent));
+
+    }
     /**
      * @Route("/", name="commande_index")
      */
     public function index(CommandeRepository $commandeRepository, NormalizerInterface $Normalizer): Response
     {
-        $commandes=$commandeRepository->findAll();
-        
-        $jsonContent = $Normalizer->normalize($commandes, 'json',['groups' => 'cmd']) ;
-        
-        
+        /* $commandes=$commandeRepository->findAll(); */
+        $commandes = $commandeRepository->findBy(["done" => false , "client" => 1]);
+
+
+        $jsonContent = $Normalizer->normalize($commandes, 'json', ['groups' => 'cmd']);
+
+
         /* return $this->render('commande/index.html.twig', [
             'commandes' => $commandeRepository->findAll(),
         ]); */
-        return new Response(json_encode($jsonContent)) ;
+        return new Response(json_encode($jsonContent));
     }
-     /**
+    /**
      * @Route("/addCommandejson/new", name="addCommandejson")
      */
-    public function addCommandejson(Request $request ,NormalizerInterface $Normalizer ,OeuvreRepository $oeuvreRepo, ClientRepository $clientRepo, $idClient=1 , $idOeuvre=1): Response
+    public function addCommandejson(Request $request, NormalizerInterface $Normalizer, OeuvreRepository $oeuvreRepo, ClientRepository $clientRepo, $idClient = 1, $idOeuvre = 1): Response
     {
         $entityManager = $this->getDoctrine()->getManager();
-        $idClient=1;
-        $idOeuvre=1;
+        $idClient = 1;
+        $idOeuvre = 1;
         $commande = new Commande();
         $commande->setDone(false);
         //$commande->setDateCommande();
-        
-        $client=$clientRepo->find($idClient);
+
+        $client = $clientRepo->find($request->get('idClient'));
         $commande->setClient($client);
         $commande->setDateCommande(new \DateTime());
-        $oeuvre=$oeuvreRepo->find($idOeuvre);
+        $oeuvre = $oeuvreRepo->find($request->get('idOeuvre'));
         $commande->addOeuvre($oeuvre);
-       
-            $entityManager->persist($commande);
-            $entityManager->flush();
-            $json=$Normalizer->normalize($commande , 'json',['groups' => 'cmd']) ;
 
-            return new Response(json_encode($json));
-        
+        $entityManager->persist($commande);
+        $entityManager->flush();
+        $json = $Normalizer->normalize($commande, 'json', ['groups' => 'cmd']);
 
-      
+        return new Response(json_encode($json));
     }
 
     /**
@@ -100,14 +118,14 @@ class CommandeController extends AbstractController
             'commande' => $commande,
         ]);
     }
-       
 
- /**
+
+    /**
      * @Route("/clientid/", name="commande_show")
      */
-    public function findbyclientid(Commande $commande , CommandeRepository $repo): Response
+    public function findbyclientid(Commande $commande, CommandeRepository $repo): Response
     {
-        $commandesclient = $repo->findOneBySomeField(1) ;
+        $commandesclient = $repo->findOneBySomeField(1);
 
         dump($commandesclient);
         die;
@@ -117,36 +135,55 @@ class CommandeController extends AbstractController
         ]);
     }
     /**
-     * @Route("/{id}/edit", name="commande_edit", methods={"GET","POST"})
+     * @Route("/confirmCommandeJSON", name="confirmCommandeJSON", methods={"GET","POST"})
      */
-    public function edit(Request $request, Commande $commande): Response
+    public function edit(Request $request, CommandeRepository $commandeRepository, NormalizerInterface $Normalizer): Response
     {
-        $form = $this->createForm(CommandeType::class, $commande);
-        $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        $commandes = $commandeRepository->findBy(["done" => false]);
+
+
+        foreach ($commandes as $commande) {
+
+            $commande->setDone(true);
+            $this->getDoctrine()->getManager()->flush();
+        }
+        $json = $Normalizer->normalize($commandes, 'json', ['groups' => 'cmd']);
+
+
+
+
+        /* $form = $this->createForm(CommandeType::class, $commande);
+        $form->handleRequest($request); */
+
+        /* if ($form->isSubmitted() && $form->isValid()) {
             $this->getDoctrine()->getManager()->flush();
 
             return $this->redirectToRoute('commande_index');
-        }
+         */
 
-        return $this->render('commande/edit.html.twig', [
+        /*    return $this->render('commande/edit.html.twig', [
             'commande' => $commande,
-            'form' => $form->createView(),
-        ]);
+            'form' => $form->createView(), 
+        ]);*/
+        return new Response("commande confirmed" . json_encode(($json)));
     }
 
     /**
-     * @Route("/{id}", name="commande_delete", methods={"POST"})
+     * @Route("/deleteCommandeJSON/{id}", name="deleteCommandeJson")
      */
-    public function delete(Request $request, Commande $commande): Response
+    public function delete(Request $request, Commande $commandeToDelete, NormalizerInterface $Normalizer, CommandeRepository $CommandeRepo, $id): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$commande->getId(), $request->request->get('_token'))) {
-            $entityManager = $this->getDoctrine()->getManager();
-            $entityManager->remove($commande);
-            $entityManager->flush();
-        }
+        /* if ($this->isCsrfTokenValid('delete'.$commande->getId(), $request->request->get('_token'))) { */
+        $entityManager = $this->getDoctrine()->getManager();
+        $commandeToDelete = $CommandeRepo->find($id);
 
-        return $this->redirectToRoute('commande_index');
+        $entityManager->remove($commandeToDelete);
+        $entityManager->flush();
+        $json = $Normalizer->normalize($commandeToDelete,  'json', ['groups' => 'cmd']);
+        return new Response("Commande deleted" . json_encode($json));
+        /*  } */
+
+        /* return $this->redirectToRoute('commande_index'); */
     }
 }

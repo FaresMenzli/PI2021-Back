@@ -55,11 +55,12 @@ class OeuvreController extends AbstractController
     /**
      * @Route("/{id}", name="oeuvre_show", methods={"GET"})
      */
-    public function show(Oeuvre $oeuvre): Response
+    public function show(Oeuvre $oeuvre,NormalizerInterface $Normalizer): Response
     {
-        return $this->render('oeuvre/show.html.twig', [
+        /* return $this->render('oeuvre/show.html.twig', [
             'oeuvre' => $oeuvre,
-        ]);
+        ]); */
+        return new Response(json_encode($Normalizer->normalize($oeuvre, 'json')  )) ;
     }
 
     /**
