@@ -7,6 +7,7 @@ use App\Form\CommandeType;
 use App\Repository\ClientRepository;
 use App\Repository\CommandeRepository;
 use App\Repository\OeuvreRepository;
+use Doctrine\ORM\Mapping\Id;
 use Normalizer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -43,10 +44,11 @@ class CommandeController extends AbstractController
     /**
      * @Route("/", name="commande_index")
      */
-    public function index(CommandeRepository $commandeRepository, NormalizerInterface $Normalizer): Response
+    public function commandesNotDone(CommandeRepository $commandeRepository, NormalizerInterface $Normalizer): Response
     {
         /* $commandes=$commandeRepository->findAll(); */
         $commandes = $commandeRepository->findBy(["done" => false , "client" => 1]);
+        
 
 
         $jsonContent = $Normalizer->normalize($commandes, 'json', ['groups' => 'cmd']);
@@ -137,7 +139,7 @@ class CommandeController extends AbstractController
     /**
      * @Route("/confirmCommandeJSON", name="confirmCommandeJSON", methods={"GET","POST"})
      */
-    public function edit(Request $request, CommandeRepository $commandeRepository, NormalizerInterface $Normalizer): Response
+    public function edit(Request $request, CommandeRepository $commandeRepository,OeuvreRepository $oeuvreRepository, NormalizerInterface $Normalizer): Response
     {
 
         $commandes = $commandeRepository->findBy(["done" => false]);
@@ -146,6 +148,11 @@ class CommandeController extends AbstractController
         foreach ($commandes as $commande) {
 
             $commande->setDone(true);
+            /* $oeuvre=$commande->getOeuvre()[0]; */
+            $commande->getOeuvre()[0]->setQuantity($commande->getOeuvre()[0]->getQuantity()-1);
+            
+            
+
             $this->getDoctrine()->getManager()->flush();
         }
         $json = $Normalizer->normalize($commandes, 'json', ['groups' => 'cmd']);
@@ -177,6 +184,8 @@ class CommandeController extends AbstractController
         /* if ($this->isCsrfTokenValid('delete'.$commande->getId(), $request->request->get('_token'))) { */
         $entityManager = $this->getDoctrine()->getManager();
         $commandeToDelete = $CommandeRepo->find($id);
+
+        
 
         $entityManager->remove($commandeToDelete);
         $entityManager->flush();
