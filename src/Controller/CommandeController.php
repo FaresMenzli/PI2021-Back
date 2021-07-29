@@ -12,6 +12,8 @@ use Normalizer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -81,6 +83,8 @@ class CommandeController extends AbstractController
         $entityManager->flush();
         $json = $Normalizer->normalize($commande, 'json', ['groups' => 'cmd']);
 
+     
+
         return new Response(json_encode($json));
     }
 
@@ -139,7 +143,7 @@ class CommandeController extends AbstractController
     /**
      * @Route("/confirmCommandeJSON", name="confirmCommandeJSON", methods={"GET","POST"})
      */
-    public function edit(Request $request, CommandeRepository $commandeRepository,OeuvreRepository $oeuvreRepository, NormalizerInterface $Normalizer): Response
+    public function edit(MailerInterface $mailer ,Request $request, CommandeRepository $commandeRepository,OeuvreRepository $oeuvreRepository, NormalizerInterface $Normalizer): Response
     {
 
         $commandes = $commandeRepository->findBy(["done" => false]);
@@ -156,6 +160,23 @@ class CommandeController extends AbstractController
             $this->getDoctrine()->getManager()->flush();
         }
         $json = $Normalizer->normalize($commandes, 'json', ['groups' => 'cmd']);
+   //mailer
+       
+        
+    $email = (new Email())
+   ->from('fares.elouissi@esprit.tn')
+   ->to('fares.elouissi@esprit.tn')
+   //->cc('cc@example.com')
+   //->bcc('bcc@example.com')
+   //->replyTo('fabien@example.com')
+   //->priority(Email::PRIORITY_HIGH)
+   ->subject('ArtisticShowroom : Votre commande est passé avec Succes')
+   ->text('Sending emails is fun again!')
+   ->html('<p>Merci votre commande est passé avec succes</p>');
+
+$mailer->send($email);
+
+// ... */
 
 
 
